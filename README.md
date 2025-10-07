@@ -31,12 +31,12 @@ git clone <your-repo-url>
 cd sora2-test
 
 # Install dependencies using uv (recommended)
-uv pip install python-dotenv openai print-color
+uv pip install python-dotenv openai print-color pillow
 
 # Or using pip with venv
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install python-dotenv openai print-color
+pip install python-dotenv openai print-color pillow
 
 # Set up API key
 cp .env.example .env
@@ -173,11 +173,17 @@ if video.status == "completed":
 ### With Reference Image
 
 ```python
+# Reference image MUST match video dimensions exactly
+# The client automatically validates and resizes if needed
 video = client.create_and_poll(
     prompt="Character turns and walks forward",
-    input_reference="character.jpg",
+    input_reference="character.jpg",  # Will be auto-resized to match size
+    size="720x1280",  # Portrait format
     seconds="4"
 )
+
+# Note: If dimensions don't match, a resized copy will be created automatically
+# Example: character.jpg (3200x3999) -> character_resized_720x1280.jpg
 ```
 
 ### Video Remixing

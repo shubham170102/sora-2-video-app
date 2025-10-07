@@ -34,3 +34,7 @@ generated_videos/
 # OS
 .DS_Store
 Thumbs.db
+
+*.jpg
+*.jpeg
+*.png

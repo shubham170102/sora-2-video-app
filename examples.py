@@ -78,24 +78,26 @@ def example_with_reference_image():
     client = SoraClient()
 
     # need reference image to exist
-    reference_path = "reference_image.jpg"
+    reference_path = "reference_image.jpeg"
     if not Path(reference_path).exists():
         cprint(f"Warning: {reference_path} not found", color='yellow')
         print("This example needs an image file as the first frame")
-        print("Add 'reference_image.jpg' to continue")
+        print("Add 'reference_image.jpeg' to continue")
         return
 
     # Note: Reference image feature may not be fully available yet
     cprint("Note: Reference image upload is in beta and may not work with all accounts", color='yellow')
     print("The API will attempt to use the image, but may proceed without it if not supported")
+    print("\nIMPORTANT: Reference image dimensions MUST match video size")
+    print("The client will automatically resize if needed and create a new file")
 
-    prompt = "The character slowly turns around and smiles, then walks forward into the sunlight"
+    prompt = "The character slowly turns around and smiles, and then jumps off a cliff"
 
     video = client.create_and_poll(
         prompt=prompt,
-        model=VideoModel.SORA_2.value,
-        size=VideoSize.SIZE_1280x720.value,
-        seconds="4",
+        model=VideoModel.SORA_2_PRO.value,
+        size=VideoSize.SIZE_720x1280.value,
+        seconds="8",
         input_reference=reference_path
     )
 

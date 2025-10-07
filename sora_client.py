@@ -7,11 +7,12 @@ import os
 import sys
 import time
 import asyncio
-from typing import Optional, Dict, Any, List, Literal
+from typing import Optional, Dict, Any, List, Literal, Tuple
 from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
 from dotenv import load_dotenv
+from PIL import Image
 
 # Load environment variables
 load_dotenv()
@@ -72,6 +73,60 @@ class SoraClient:
         self.client = OpenAI(api_key=self.api_key)
         self.async_client = AsyncOpenAI(api_key=self.api_key)
 
+    def validate_and_prepare_reference_image(
+        self,
+        image_path: str,
+        target_size: str
+    ) -> Tuple[str, bool]:
+        """
+        Validate that reference image matches target video dimensions.
+        If not, create a resized version.
+
+        Args:
+            image_path: Path to the reference image
+            target_size: Target video size (e.g., "1280x720")
+
+        Returns:
+            Tuple of (path_to_use, was_resized)
+        """
+        from print_color import print as pc
+
+        if not Path(image_path).exists():
+            raise FileNotFoundError(f"Reference image not found: {image_path}")
+
+        # Parse target dimensions
+        target_width, target_height = map(int, target_size.split('x'))
+
+        # Check current image dimensions
+        try:
+            with Image.open(image_path) as img:
+                current_width, current_height = img.size
+
+                # Check if dimensions match
+                if current_width == target_width and current_height == target_height:
+                    pc(f"Reference image dimensions match: {current_width}x{current_height}",
+                       color='green', tag='OK', tag_color='green')
+                    return image_path, False
+
+                # Dimensions don't match - need to resize
+                pc(f"Reference image is {current_width}x{current_height}, but video needs {target_width}x{target_height}",
+                   color='yellow', tag='WARNING', tag_color='yellow')
+
+                # Create resized version
+                original_path = Path(image_path)
+                resized_path = original_path.parent / f"{original_path.stem}_resized_{target_width}x{target_height}{original_path.suffix}"
+
+                # Resize the image
+                pc(f"Resizing image to match video dimensions...", color='cyan')
+                resized_img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                resized_img.save(resized_path, quality=95)
+
+                pc(f"Resized image saved: {resized_path}", color='green', tag='SUCCESS', tag_color='green')
+                return str(resized_path), True
+
+        except Exception as e:
+            raise ValueError(f"Failed to process reference image: {e}")
+
     def create_video(
         self,
         prompt: str,
@@ -120,15 +175,30 @@ class SoraClient:
         # Add reference image if provided
         try:
             if input_reference and Path(input_reference).exists():
-                # Try opening the file in binary mode and passing it to the API
-                with open(input_reference, "rb") as img_file:
+                # Validate and prepare the reference image
+                image_to_use, was_resized = self.validate_and_prepare_reference_image(
+                    input_reference, size
+                )
+
+                # Open the validated image and pass it to the API
+                with open(image_to_use, "rb") as img_file:
                     params["input_reference"] = img_file
                     video = self.client.videos.create(**params)
             else:
                 video = self.client.videos.create(**params)
+        except FileNotFoundError as e:
+            from print_color import print as pc
+            pc(f"Error: {e}", color='red', tag='ERROR', tag_color='red')
+            raise
+        except ValueError as e:
+            from print_color import print as pc
+            pc(f"Error: {e}", color='red', tag='ERROR', tag_color='red')
+            raise
         except Exception as e:
             # If the API doesn't support reference images yet, proceed without it
-            print(f"Note: Reference image upload may not be supported yet: {e}")
+            from print_color import print as pc
+            pc(f"Reference image error: {e}", color='yellow', tag='WARNING', tag_color='yellow')
+            pc("Proceeding without reference image...", color='cyan')
             video = self.client.videos.create(
                 model=model,
                 prompt=prompt,
