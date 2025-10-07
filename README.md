@@ -8,7 +8,7 @@ Comprehensive Python implementation for OpenAI's Sora 2 video generation API bas
 - **Video Generation**: Create videos from text prompts using sora-2 or sora-2-pro models
 - **Status Monitoring**: Poll and track video generation progress with live updates
 - **Asset Downloads**: Download videos, thumbnails, and spritesheets
-- **Reference Images**: Use images as the first frame for video generation
+- **Reference Images**: Use images as the first frame (Note: Beta feature, may not be available for all accounts)
 - **Video Remixing**: Create variations of existing videos
 - **Library Management**: List, filter, monitor, and delete videos
 
@@ -50,7 +50,8 @@ cp .env.example .env
 ./examples.py  # or .venv/bin/python examples.py
 
 # Direct commands
-./examples.py 1  # Basic video generation
+./examples.py g  # NEW! CUSTOM VIDEO GENERATOR - Full control
+./examples.py 1  # Interactive video generation
 ./examples.py 2  # High quality production
 ./examples.py 3  # With reference image
 ./examples.py 4  # Remix workflow
@@ -61,6 +62,26 @@ cp .env.example .env
 ./examples.py 9  # Advanced prompting
 ./examples.py t  # Test API connection
 ```
+
+### NEW: Custom Video Generator (Option G)
+
+The custom generator provides full control over video generation:
+
+**Features:**
+- Interactive prompt input with guidelines
+- Aspect ratio selection (16:9, 9:16, 7:4, 4:7)
+- Duration selection (4s, 8s, 12s) with cost indicators
+- Model selection (Standard vs Pro)
+- Unique filename generation with timestamps
+- Batch generation with custom settings
+- All videos saved in `generated_videos/` folder
+
+**Unique Naming System:**
+Videos are automatically named with:
+- Timestamp (YYYYMMDD_HHMMSS)
+- First 30 characters of prompt (cleaned)
+- Short video ID
+Example: `20240107_143022_sunset_over_mountains_abc12345.mp4`
 
 **Library Management Features (Option 8):**
 - List all videos with status indicators
@@ -73,21 +94,24 @@ cp .env.example .env
 
 ```
 sora2-test/
-├── examples.py       # Main entry point - all features in one place
-│                     # Video generation examples (1-7)
-│                     # Video library management (8)
-│                     # Connection testing (T)
-│                     # Monitor, download, delete videos
-├── sora_client.py    # Core Sora API client implementation
-├── video_utils.py    # Advanced utilities (caching, queues, webhooks)
-├── .env             # Your API key (not committed to git)
-├── .env.example     # Template for environment variables
-├── .gitignore       # Git ignore configuration
-├── pyproject.toml   # Project dependencies
-└── README.md        # This documentation
+├── examples.py         # Main entry point - all features in one place
+│                       # Video generation examples (1-7)
+│                       # Video library management (8)
+│                       # Connection testing (T)
+│                       # Custom generator (G) - NEW!
+├── video_generator.py  # NEW! Flexible video generation with user input
+│                       # Custom aspect ratios, durations, models
+│                       # Unique naming system
+│                       # Batch generation support
+├── sora_client.py      # Core Sora API client implementation
+├── video_utils.py      # Advanced utilities (caching, queues, webhooks)
+├── generated_videos/   # Auto-created directory for output videos
+├── .env               # Your API key (not committed to git)
+├── .env.example       # Template for environment variables
+├── .gitignore         # Git ignore configuration
+├── pyproject.toml     # Project dependencies
+└── README.md          # This documentation
 ```
-
-**Only 3 Python files needed.** Everything accessible through examples.py.
 
 ## API Documentation
 
@@ -109,12 +133,20 @@ sora2-test/
 - `"8"` seconds - Standard length
 - `"12"` seconds - Extended content
 
-### Content Restrictions
+### Important: Content Restrictions
 
-- Content must be suitable for audiences under 18
-- No copyrighted characters or music
-- No real people or public figures
-- No faces in input reference images
+The API enforces strict content policies. Videos will fail if they contain:
+- **Copyrighted characters** (Spider-Man, Batman, Mickey Mouse, etc.)
+- **Real people or celebrities**
+- **Trademarked logos or brands**
+- **Inappropriate or adult content**
+- **Faces in input reference images**
+
+**Working Around Restrictions:**
+Instead of using copyrighted names, use generic descriptions:
+- Instead of "Spider-Man swinging" use "A masked hero in red and blue suit swinging between buildings"
+- Instead of "Batman on rooftop" use "A dark vigilante figure on gothic architecture at night"
+- Focus on describing visual elements rather than naming specific IP
 
 ## Usage Examples
 

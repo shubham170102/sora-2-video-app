@@ -118,12 +118,23 @@ class SoraClient:
         }
 
         # Add reference image if provided
-        if input_reference and Path(input_reference).exists():
-            with open(input_reference, "rb") as img_file:
-                params["input_reference"] = img_file
+        try:
+            if input_reference and Path(input_reference).exists():
+                # Try opening the file in binary mode and passing it to the API
+                with open(input_reference, "rb") as img_file:
+                    params["input_reference"] = img_file
+                    video = self.client.videos.create(**params)
+            else:
                 video = self.client.videos.create(**params)
-        else:
-            video = self.client.videos.create(**params)
+        except Exception as e:
+            # If the API doesn't support reference images yet, proceed without it
+            print(f"Note: Reference image upload may not be supported yet: {e}")
+            video = self.client.videos.create(
+                model=model,
+                prompt=prompt,
+                size=size,
+                seconds=seconds_str
+            )
 
         return video
 
@@ -176,6 +187,7 @@ class SoraClient:
         Returns:
             Final video object
         """
+        from print_color import print as pc
         bar_length = 40
 
         while True:
@@ -192,6 +204,23 @@ class SoraClient:
             if video.status in ["completed", "failed"]:
                 if show_progress:
                     sys.stdout.write("\n")
+
+                # Handle failure with detailed error message
+                if video.status == "failed":
+                    error_msg = getattr(video, 'error', None)
+                    if error_msg:
+                        pc(f"\nVideo generation failed: {error_msg}", color='red', tag='ERROR', tag_color='red')
+
+                        # Check for common content policy violations
+                        if "content policy" in str(error_msg).lower():
+                            pc("\nContent Policy Violation Detected:", color='yellow', tag='INFO', tag_color='yellow')
+                            pc("- No copyrighted characters (Spider-Man, Batman, etc.)", color='white')
+                            pc("- No real people or public figures", color='white')
+                            pc("- No inappropriate or adult content", color='white')
+                            pc("- No trademarked logos or brands", color='white')
+                            pc("- Content must be suitable for all audiences", color='white')
+                    else:
+                        pc(f"\nVideo generation failed with status: {video.status}", color='red', tag='ERROR', tag_color='red')
                 break
 
             time.sleep(poll_interval)

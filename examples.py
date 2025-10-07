@@ -22,33 +22,19 @@ from sora_client import (
     PromptBuilder,
     quick_generate
 )
+from video_generator import VideoGenerator, interactive_video_generator
 
 
 def example_basic_generation():
-    """basic video gen - quick and dirty test"""
-    cprint("Basic Video Generation", color='cyan', format='bold')
+    """basic video gen with flexible user input"""
+    cprint("Interactive Video Generation", color='cyan', format='bold')
     print("-" * 50)
 
-    # init the client
-    client = SoraClient()
+    # use the new generator for flexibility
+    generator = VideoGenerator()
 
-    # basic sunset prompt, nothing fancy
-    prompt = "A serene sunset over mountain peaks with birds flying across the orange sky"
-
-    # generate with defaults
-    video = client.create_and_poll(
-        prompt=prompt,
-        model=VideoModel.SORA_2.value,
-        size=VideoSize.SIZE_1280x720.value,
-        seconds="4"
-    )
-
-    if video.status == "completed":
-        # grab the video file
-        client.download_video(video.id, "sunset_mountains.mp4")
-        cprint("Saved: sunset_mountains.mp4", color='green')
-    else:
-        cprint(f"Generation failed: {video.status}", color='red')
+    # let user customize everything
+    generator.generate_custom_video()
 
 
 def example_high_quality_production():
@@ -99,6 +85,10 @@ def example_with_reference_image():
         print("Add 'reference_image.jpg' to continue")
         return
 
+    # Note: Reference image feature may not be fully available yet
+    cprint("Note: Reference image upload is in beta and may not work with all accounts", color='yellow')
+    print("The API will attempt to use the image, but may proceed without it if not supported")
+
     prompt = "The character slowly turns around and smiles, then walks forward into the sunlight"
 
     video = client.create_and_poll(
@@ -112,6 +102,8 @@ def example_with_reference_image():
     if video.status == "completed":
         client.download_video(video.id, "character_animation.mp4")
         cprint("Saved: character_animation.mp4", color='green')
+    else:
+        cprint(f"Video generation status: {video.status}", color='red')
 
 
 def example_remix_workflow():
@@ -525,7 +517,7 @@ def test_connection():
 def run_example(choice: str):
     """run specific example by choice"""
     examples = {
-        "1": example_basic_generation,
+        "1": example_basic_generation,  # now interactive
         "2": example_high_quality_production,
         "3": example_with_reference_image,
         "4": example_remix_workflow,
@@ -534,7 +526,8 @@ def run_example(choice: str):
         "7": lambda: asyncio.run(example_async_generation()),
         "8": example_video_library_management,
         "9": example_advanced_prompting,
-        "t": test_connection
+        "t": test_connection,
+        "g": lambda: interactive_video_generator()  # new generator menu
     }
 
     if choice == "0":
@@ -580,8 +573,10 @@ def main():
     else:
         # interactive menu
         print("\nAvailable Options:")
+        cprint("\nNEW - Interactive Generator:", color='green', format='bold')
+        print("  G. Custom Video Generator - Full control over all settings")
         print("\nVideo Generation:")
-        print("  1. Basic Generation - Quick 4-second video")
+        print("  1. Interactive Generation - User customizable")
         print("  2. High Quality Production - Pro model, 12-second")
         print("  3. With Reference Image - Use image as first frame")
         print("  4. Remix Workflow - Modify existing videos")
@@ -598,7 +593,7 @@ def main():
 
         while True:
             try:
-                choice = input("\nSelect option (0-9, T, or Q to quit): ").strip().lower()
+                choice = input("\nSelect option (0-9, G, T, or Q to quit): ").strip().lower()
 
                 if choice == 'q' or choice == 'quit':
                     print("Bye")
