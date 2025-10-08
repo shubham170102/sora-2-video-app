@@ -1,167 +1,211 @@
-# Sora 2 API Python Implementation
+# Sora 2 API Python Client
 
-Comprehensive Python implementation for OpenAI's Sora 2 video generation API based on official documentation.
+Python client implementation for OpenAI's Sora 2 video generation API.
+
+## Overview
+
+This repository provides a Python interface for the Sora 2 API, supporting video generation from text prompts with optional reference images. The implementation includes automatic image resizing, batch processing, and comprehensive error handling.
 
 ## Features
 
 ### Core Functionality
-- **Video Generation**: Create videos from text prompts using sora-2 or sora-2-pro models
-- **Status Monitoring**: Poll and track video generation progress with live updates
-- **Asset Downloads**: Download videos, thumbnails, and spritesheets
-- **Reference Images**: Use images as the first frame (Note: Beta feature, may not be available for all accounts)
-- **Video Remixing**: Create variations of existing videos
-- **Library Management**: List, filter, monitor, and delete videos
+- Video generation using sora-2 and sora-2-pro models
+- Reference image support with automatic dimension validation
+- Model, resolution, and duration selection
+- Organized file management with designated input/output directories
+- Video library management (list, monitor, download, delete)
+- Concurrent batch processing
+- Asset downloads (video, thumbnail, spritesheet)
 
-### Advanced Features
-- **Batch Processing**: Generate multiple videos concurrently with queue management
-- **Async Support**: Asynchronous video generation for better performance
-- **Webhook Handling**: Process webhook notifications for completed/failed videos
-- **Caching System**: Avoid duplicate generations with smart caching
-- **Progress Monitoring**: Real-time progress bars with colored output
-- **Retry Logic**: Automatic retry on failures with exponential backoff
-- **Platform Optimization**: Auto-configure parameters for Instagram, YouTube, Twitter
+### Additional Capabilities
+- Automatic image resizing to match target video dimensions
+- Directory scanning for reference images
+- Real-time cost calculation based on selected parameters
+- Progress monitoring with status indicators
+- Detailed error messages for API failures
+- Timestamp-based file naming to prevent overwrites
+- Test image generation for validation
 
-## Quick Start
+## Installation
 
-### Installation
+### Prerequisites
+- Python 3.8+
+- OpenAI API key with Sora access
+
+### Setup
 
 ```bash
 # Clone repository
-git clone <your-repo-url>
-cd sora2-test
+git clone <repository-url>
+cd sora-2-video-app
 
-# Install dependencies using uv (recommended)
+# Install dependencies using uv
 uv pip install python-dotenv openai print-color pillow
 
-# Or using pip with venv
+# Alternative: Using standard pip with venv
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install python-dotenv openai print-color pillow
 
-# Set up API key
-cp .env.example .env
-# Edit .env and add your API key
+# Configure API key
+echo "OPENAI_API_KEY=your_api_key_here" > .env
 ```
-
-### Run Everything from One File
-
-```bash
-# Interactive mode
-./examples.py  # or .venv/bin/python examples.py
-
-# Direct commands
-./examples.py g  # NEW! CUSTOM VIDEO GENERATOR - Full control
-./examples.py 1  # Interactive video generation
-./examples.py 2  # High quality production
-./examples.py 3  # With reference image
-./examples.py 4  # Remix workflow
-./examples.py 5  # Download all assets
-./examples.py 6  # Batch generation
-./examples.py 7  # Async generation
-./examples.py 8  # VIDEO LIBRARY MANAGEMENT (monitor, download, delete)
-./examples.py 9  # Advanced prompting
-./examples.py t  # Test API connection
-```
-
-### NEW: Custom Video Generator (Option G)
-
-The custom generator provides full control over video generation:
-
-**Features:**
-- Interactive prompt input with guidelines
-- Aspect ratio selection (16:9, 9:16, 7:4, 4:7)
-- Duration selection (4s, 8s, 12s) with cost indicators
-- Model selection (Standard vs Pro)
-- Unique filename generation with timestamps
-- Batch generation with custom settings
-- All videos saved in `generated_videos/` folder
-
-**Unique Naming System:**
-Videos are automatically named with:
-- Timestamp (YYYYMMDD_HHMMSS)
-- First 30 characters of prompt (cleaned)
-- Short video ID
-Example: `20240107_143022_sunset_over_mountains_abc12345.mp4`
-
-**Library Management Features (Option 8):**
-- List all videos with status indicators
-- Monitor in-progress videos with live progress bar
-- Download completed videos with optional thumbnails
-- Delete unwanted videos
-- Check detailed video information
 
 ## Project Structure
 
 ```
 sora2-test/
-├── examples.py         # Main entry point - all features in one place
-│                       # Video generation examples (1-7)
-│                       # Video library management (8)
-│                       # Connection testing (T)
-│                       # Custom generator (G) - NEW!
-├── video_generator.py  # NEW! Flexible video generation with user input
-│                       # Custom aspect ratios, durations, models
-│                       # Unique naming system
-│                       # Batch generation support
-├── sora_client.py      # Core Sora API client implementation
-├── video_utils.py      # Advanced utilities (caching, queues, webhooks)
-├── generated_videos/   # Auto-created directory for output videos
-├── .env               # Your API key (not committed to git)
-├── .env.example       # Template for environment variables
-├── .gitignore         # Git ignore configuration
-├── pyproject.toml     # Project dependencies
-└── README.md          # This documentation
+├── reference_images/      # Input directory for reference images
+├── generated_videos/      # Output directory for generated videos
+├── examples.py           # Main entry point with menu interface
+├── sora_client.py        # Core API client implementation
+├── video_generator.py    # Interactive video generation interface
+├── video_utils.py        # Utility functions and helpers
+├── create_test_image.py  # Test image generator
+└── .env                  # API key configuration (not tracked in git)
 ```
 
-## API Documentation
+## Usage
 
-### Models
+### Running the Application
 
-- **sora-2**: Fast generation for exploration and iteration
-- **sora-2-pro**: Higher quality, production-ready output
+```bash
+# Interactive menu
+./examples.py
 
-### Video Parameters
+# Direct command execution
+./examples.py 3  # Reference image generation
+./examples.py g  # Custom video generator
+./examples.py s  # Safe reference test
+./examples.py t  # Test API connection
+```
 
-**Supported Sizes:**
-- `1280x720` - HD Landscape
-- `720x1280` - HD Portrait (vertical)
-- `1792x1024` - Wide Landscape
-- `1024x1792` - Wide Portrait (vertical)
+### Menu Options
 
-**Duration Options:**
-- `"4"` seconds - Quick preview
-- `"8"` seconds - Standard length
-- `"12"` seconds - Extended content
+```
+Interactive Generator:
+  G. Custom Video Generator - Full parameter control
+  S. Safe Reference Test - Test with generated images
 
-### Important: Content Restrictions
+Video Generation:
+  1. Interactive Generation - User customizable
+  2. High Quality Production - Pro model, 12-second
+  3. Reference Image Generation - Full flexibility
+  4. Remix Workflow - Modify existing videos
+  5. Download All Assets - Video, thumbnail, sprites
+  6. Batch Generation - Multiple videos concurrently
+  7. Async Generation - Asynchronous processing
 
-The API enforces strict content policies. Videos will fail if they contain:
-- **Copyrighted characters** (Spider-Man, Batman, Mickey Mouse, etc.)
-- **Real people or celebrities**
-- **Trademarked logos or brands**
-- **Inappropriate or adult content**
-- **Faces in input reference images** (Very strict - often causes moderation blocks)
+Management:
+  8. Library Management - List, monitor, download
+  9. Advanced Prompting - Cinematic techniques
 
-**Reference Image Moderation Issues:**
-Reference images with human faces are frequently blocked. To successfully use reference images:
-1. Use landscape, nature, or abstract images
-2. Avoid any identifiable people or faces
-3. Use the included test image generator: `python create_test_image.py`
-4. Test with option 'S' in the menu for safe reference testing
+Utilities:
+  T. Test Connection - Verify API setup
+```
 
-**Working Around Restrictions:**
-Instead of using copyrighted names, use generic descriptions:
-- Instead of "Spider-Man swinging" use "A masked hero in red and blue suit swinging between buildings"
-- Instead of "Batman on rooftop" use "A dark vigilante figure on gothic architecture at night"
-- Focus on describing visual elements rather than naming specific IP
+## Reference Image Feature
 
-**Safe Prompts for Reference Images:**
+The reference image feature (Option 3) provides comprehensive control over video generation with image inputs.
+
+### Capabilities
+- Automatic directory scanning in `reference_images/` folder
+- Support for .jpg, .jpeg, .png, .webp, .bmp formats
+- Automatic image resizing to match target video dimensions
+- Model selection between sora-2 and sora-2-pro
+- Resolution options based on selected model
+- Duration selection (4, 8, or 12 seconds)
+- Real-time cost calculation before generation
+
+### Resolution Options
+
+**sora-2 model:**
+- 720x1280 (Portrait)
+- 1280x720 (Landscape)
+
+**sora-2-pro model:**
+- 720x1280 (Portrait)
+- 1280x720 (Landscape)
+- 1024x1792 (HD Portrait)
+- 1792x1024 (HD Landscape)
+
+### Pricing Structure
+
+| Model | Resolution | Cost per Second |
+|-------|------------|-----------------|
+| sora-2 | 720x1280, 1280x720 | $0.10 |
+| sora-2-pro | 720x1280, 1280x720 | $0.30 |
+| sora-2-pro | 1024x1792, 1792x1024 | $0.50 |
+
+### Workflow
+
+1. Place reference images in `reference_images/` directory
+2. Execute `./examples.py 3`
+3. Select image from displayed list
+4. Choose model (sora-2 or sora-2-pro)
+5. Select target resolution
+6. Choose duration (4, 8, or 12 seconds)
+7. Review cost estimate
+8. Enter or select prompt
+9. Confirm generation
+
+## Content Guidelines
+
+### API Restrictions
+
+The API enforces content policies that will reject requests containing:
+
+- Copyrighted characters (e.g., Spider-Man, Batman, Disney properties)
+- Real people or celebrity likenesses
+- Trademarked logos or brand imagery
+- Adult or inappropriate content
+- Human faces in reference images (strict enforcement)
+- Dangerous or violent actions
+
+### Reference Image Guidelines
+
+**Acceptable Images:**
+- Landscape and nature scenes
+- Abstract patterns and designs
+- Objects without human presence
+- Architecture and buildings
+- Computer-generated test images
+
+**Problematic Images:**
+- Photos containing human faces
+- Identifiable individuals
+- Copyrighted character imagery
+- Brand logos or trademarks
+
+### Prompt Recommendations
+
+**Recommended Prompts (Technical/Camera-based):**
 - "The camera slowly zooms in by 10 percent"
-- "Gentle fade transition to warmer color temperature"
 - "Smooth pan from left to right across the scene"
-- Avoid actions involving people or dangerous situations
+- "Gentle fade transition to warmer color temperature"
+- "Gradual tilt upward revealing more of the scene"
+- "Time-lapse transition from day to night"
 
-## Usage Examples
+**Avoid These Prompts:**
+- "Person waves goodbye"
+- "Character jumps off cliff"
+- "Spider-Man swinging through city"
+- "Celebrity walking forward"
+
+### Test Image Generation
+
+Generate safe test images without human faces:
+
+```bash
+python create_test_image.py
+```
+
+This creates:
+- `test_landscape.jpeg` - Gradient landscape
+- `test_abstract.jpeg` - Abstract pattern
+- `test_landscape_wrong_size.jpeg` - For resize testing
+
+## Code Examples
 
 ### Basic Video Generation
 
@@ -170,139 +214,130 @@ from sora_client import SoraClient
 
 client = SoraClient()
 
-# Generate video
 video = client.create_and_poll(
-    prompt="A serene sunset over mountain peaks",
+    prompt="Sunset over mountains",
     model="sora-2",
     size="1280x720",
     seconds="8"
 )
 
-# Download if successful
 if video.status == "completed":
-    client.download_video(video.id, "sunset.mp4")
+    client.download_video(video.id, "generated_videos/sunset.mp4")
 ```
 
-### With Reference Image
+### Reference Image with Auto-Resize
 
 ```python
-# Reference image MUST match video dimensions exactly
-# The client automatically validates and resizes if needed
+# Image automatically resized if dimensions don't match
 video = client.create_and_poll(
-    prompt="Character turns and walks forward",
-    input_reference="character.jpg",  # Will be auto-resized to match size
-    size="720x1280",  # Portrait format
+    prompt="Camera slowly zooms in",
+    input_reference="reference_images/landscape.jpg",
+    size="720x1280",  # Image resized to match
     seconds="4"
 )
-
-# Note: If dimensions don't match, a resized copy will be created automatically
-# Example: character.jpg (3200x3999) -> character_resized_720x1280.jpg
 ```
 
-### Video Remixing
+### Custom Generator Interface
 
 ```python
-# Create remix of existing video
-remix = client.remix_video(
-    original_video_id="video_abc123",
-    remix_prompt="Change color palette to warm tones"
-)
+from video_generator import VideoGenerator
+
+generator = VideoGenerator()
+generator.generate_custom_video()  # Interactive prompts for all parameters
 ```
 
-### Batch Processing
+## API Parameters
 
-```python
-from video_utils import VideoQueue
+### Models
+- `sora-2` - Standard quality, faster processing
+- `sora-2-pro` - Enhanced quality, professional output
 
-queue = VideoQueue(client, max_concurrent=3)
+### Resolutions
+- `1280x720` - HD Landscape (16:9)
+- `720x1280` - HD Portrait (9:16)
+- `1792x1024` - Wide Landscape (7:4)
+- `1024x1792` - Wide Portrait (4:7)
 
-# Add tasks to queue
-queue.add_task("Sunset over ocean", seconds="4")
-queue.add_task("City skyline timelapse", seconds="8")
-queue.add_task("Forest in autumn", seconds="4")
+### Durations
+- `"4"` - Preview length
+- `"8"` - Standard length
+- `"12"` - Extended length
 
-# Process queue
-queue.process_queue()
-```
+Note: Duration parameter must be a string type.
 
-### Platform-Optimized Generation
+## File Organization
 
-```python
-from video_utils import VideoOptimizer
+### Input Structure
+- Reference images: `reference_images/`
+- Supported formats: .jpg, .jpeg, .png, .webp, .bmp
 
-# Get optimized parameters for Instagram Reels
-params = VideoOptimizer.optimize_parameters(
-    prompt="Dancing in the rain",
-    target_platform="instagram_reel"
-)
+### Output Structure
+- Generated videos: `generated_videos/`
+- Naming convention: `{type}_{timestamp}_{prompt}_{id}.mp4`
+- Example: `ref_20240108_143022_camera_zoom_abc12345.mp4`
 
-video = client.create_and_poll(**params)
-```
-
-## API Endpoints
-
-The client implements all Sora API endpoints:
-
-- `POST /videos` - Create new video
-- `GET /videos/{id}` - Get video status
-- `GET /videos/{id}/content` - Download video/assets
-- `GET /videos` - List all videos
-- `DELETE /videos/{id}` - Delete video
-- `POST /videos/{id}/remix` - Create remix
-
-## Effective Prompting
-
-Best results with structured prompts including:
-- **Shot type**: Wide, close-up, medium, aerial
-- **Subject**: Clear description of main focus
-- **Action**: What's happening in the scene
-- **Setting**: Environment and location
-- **Lighting**: Time of day, mood, atmosphere
-- **Camera movement**: Static, pan, dolly, tracking
-
-Example:
-```python
-prompt = "Wide tracking shot of a vintage red car cruising along coastal highway, golden hour sunlight, smooth dolly movement"
-```
-
-## Environment Variables
-
-Create a `.env` file with:
-
-```bash
-OPENAI_API_KEY=your_api_key_here
-```
-
-Get your API key from: https://platform.openai.com/api-keys
-
-## Performance Tips
-
-- Video generation typically takes 1-5 minutes depending on model and parameters
-- Use `sora-2` for rapid prototyping and iteration
-- Use `sora-2-pro` for final production output
-- Batch multiple requests for efficiency
-- Implement caching to avoid duplicate generations
-
-## Important Notes
-
-- Download URLs expire after 24 hours
-- The API is currently in beta and subject to changes
-- Rate limits apply based on your account tier
-- Videos are stored temporarily on OpenAI servers
+### Directory Creation
+The following directories are created automatically:
+- `reference_images/` - For input images
+- `generated_videos/` - For output videos
 
 ## Troubleshooting
 
-If you encounter issues:
-1. Check your internet connection
-2. Verify your API key is valid and has credits
-3. Ensure you're using correct video parameters (sizes and durations)
-4. Check if the Sora API is temporarily unavailable
-5. Review error messages for specific issues (content policy, rate limits)
+### Common Issues
 
-## Contributing
+**Moderation Block**
+- Likely cause: Human face in reference image
+- Solution: Use landscape or object images
+- Alternative: Generate test images without faces
 
-Feel free to submit issues and enhancement requests.
+**Dimension Mismatch**
+- Automatic resolution: System auto-resizes images
+- Output location: Resized images saved in `reference_images/`
+
+**Reference Image Not Found**
+- Check: Images placed in `reference_images/` directory
+- Verify: File extension is supported
+
+**API Key Error**
+- Solution: Create `.env` file with `OPENAI_API_KEY=your_key`
+
+### Diagnostic Commands
+
+```bash
+# Test API connection
+./examples.py t
+
+# Safe mode testing with generated images
+./examples.py s
+```
+
+## Environment Configuration
+
+Create `.env` file in project root:
+
+```bash
+OPENAI_API_KEY=sk-...your_key_here...
+```
+
+Obtain API key from: https://platform.openai.com/api-keys
+
+## Best Practices
+
+1. Start with generated test images for validation
+2. Use technical prompts focusing on camera movements
+3. Allow automatic resizing to handle dimension mismatches
+4. Review cost estimates before confirming generation
+5. Maintain organized file structure using designated directories
+6. Test with safe mode before using custom images
+
+## Performance Considerations
+
+- Generation time: 1-5 minutes typical
+- sora-2: Faster processing, standard quality
+- sora-2-pro: Slower processing, enhanced quality
+- Batch processing: Available for multiple concurrent videos
+- URL expiration: Download links valid for 24 hours
 
 ## License
 
-MIT License - use freely in your projects
+MIT License
