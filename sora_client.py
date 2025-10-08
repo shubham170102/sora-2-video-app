@@ -281,9 +281,23 @@ class SoraClient:
                     if error_msg:
                         pc(f"\nVideo generation failed: {error_msg}", color='red', tag='ERROR', tag_color='red')
 
+                        # Check for moderation block specifically
+                        if "moderation" in str(error_msg).lower():
+                            pc("\nModeration Block Detected:", color='yellow', tag='BLOCKED', tag_color='red')
+                            pc("\nFor Reference Images:", color='cyan')
+                            pc("- Images with human faces are often blocked", color='white')
+                            pc("- Use landscape, nature, or object photos instead", color='white')
+                            pc("- Avoid any identifiable people or faces", color='white')
+
+                            pc("\nFor Prompts:", color='cyan')
+                            pc("- Keep actions simple and safe", color='white')
+                            pc("- Focus on camera movements (pan, zoom, tilt)", color='white')
+                            pc("- Describe lighting or color changes", color='white')
+                            pc("- Avoid dangerous or violent actions", color='white')
+
                         # Check for common content policy violations
-                        if "content policy" in str(error_msg).lower():
-                            pc("\nContent Policy Violation Detected:", color='yellow', tag='INFO', tag_color='yellow')
+                        elif "content policy" in str(error_msg).lower():
+                            pc("\nContent Policy Violation:", color='yellow', tag='POLICY', tag_color='yellow')
                             pc("- No copyrighted characters (Spider-Man, Batman, etc.)", color='white')
                             pc("- No real people or public figures", color='white')
                             pc("- No inappropriate or adult content", color='white')

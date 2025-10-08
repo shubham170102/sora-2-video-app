@@ -25,6 +25,81 @@ from sora_client import (
 from video_generator import VideoGenerator, interactive_video_generator
 
 
+def example_test_reference_safe():
+    """Test reference images with safe content that avoids moderation"""
+    cprint("Safe Reference Image Testing", color='cyan', format='bold')
+    print("-" * 50)
+
+    client = SoraClient()
+
+    # Check for test images
+    test_images = ["test_landscape.jpeg", "test_abstract.jpeg"]
+    available_images = [img for img in test_images if Path(img).exists()]
+
+    if not available_images:
+        cprint("No test images found. Creating them now...", color='yellow')
+        import subprocess
+        subprocess.run(["/Users/shubhamshrivastava/Documents/GitHub/sora2-test/.venv/bin/python", "create_test_image.py"])
+        available_images = [img for img in test_images if Path(img).exists()]
+
+    if not available_images:
+        cprint("Failed to create test images", color='red')
+        return
+
+    print("\nAvailable test images (no faces, safe content):")
+    for i, img in enumerate(available_images, 1):
+        print(f"  {i}. {img}")
+
+    img_choice = input(f"\nSelect image (1-{len(available_images)}): ").strip()
+    try:
+        selected_image = available_images[int(img_choice) - 1]
+    except:
+        selected_image = available_images[0]
+
+    print(f"\nUsing: {selected_image}")
+
+    # Ultra-safe prompts that focus on technical aspects
+    ultra_safe_prompts = [
+        "The camera slowly zooms in by 10 percent",
+        "Gentle fade transition to warmer color temperature",
+        "Smooth pan from left to right across the scene",
+        "Gradual increase in brightness and contrast",
+        "Slow tilt upward revealing more of the scene"
+    ]
+
+    print("\nUltra-safe prompts (technical, no actions):")
+    for i, p in enumerate(ultra_safe_prompts, 1):
+        print(f"  {i}. {p}")
+
+    prompt_choice = input("\nSelect prompt (1-5): ").strip()
+    try:
+        prompt = ultra_safe_prompts[int(prompt_choice) - 1]
+    except:
+        prompt = ultra_safe_prompts[0]
+
+    print(f"\nUsing prompt: {prompt}")
+    print("\nGenerating with safest possible settings...")
+
+    video = client.create_and_poll(
+        prompt=prompt,
+        model=VideoModel.SORA_2.value,
+        size=VideoSize.SIZE_720x1280.value,
+        seconds="4",
+        input_reference=selected_image
+    )
+
+    if video.status == "completed":
+        filename = f"safe_test_{Path(selected_image).stem}.mp4"
+        client.download_video(video.id, filename)
+        cprint(f"\nSuccess! Video saved as: {filename}", color='green', format='bold')
+        print("\nThis proves reference images work when:")
+        print("- No human faces in the image")
+        print("- Safe, technical prompts")
+        print("- Short duration for testing")
+    else:
+        cprint(f"Generation failed: {video.status}", color='red')
+
+
 def example_basic_generation():
     """basic video gen with flexible user input"""
     cprint("Interactive Video Generation", color='cyan', format='bold')
@@ -43,6 +118,11 @@ def example_high_quality_production():
     print("-" * 50)
 
     client = SoraClient()
+    from datetime import datetime
+
+    # Create generated_videos folder
+    output_folder = Path("generated_videos")
+    output_folder.mkdir(exist_ok=True)
 
     # build a detailed prompt for better results
     prompt = PromptBuilder.build(
@@ -66,46 +146,223 @@ def example_high_quality_production():
     )
 
     if video.status == "completed":
-        client.download_video(video.id, "coastal_drive_pro.mp4")
-        cprint("Saved: coastal_drive_pro.mp4", color='green')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"pro_{timestamp}_coastal_drive_{video.id[:8]}.mp4"
+        output_path = output_folder / filename
+        client.download_video(video.id, str(output_path))
+        cprint(f"Saved: {output_path}", color='green')
 
 
 def example_with_reference_image():
-    """use an image as first frame"""
+    """use an image as first frame with full flexibility"""
     cprint("Video Generation with Reference Image", color='cyan', format='bold')
     print("-" * 50)
 
     client = SoraClient()
+    from datetime import datetime
+    import shutil
 
-    # need reference image to exist
-    reference_path = "reference_image.jpeg"
-    if not Path(reference_path).exists():
-        cprint(f"Warning: {reference_path} not found", color='yellow')
-        print("This example needs an image file as the first frame")
-        print("Add 'reference_image.jpeg' to continue")
+    # Create reference_images folder if it doesn't exist
+    ref_folder = Path("reference_images")
+    ref_folder.mkdir(exist_ok=True)
+
+    # Create generated_videos folder
+    output_folder = Path("generated_videos")
+    output_folder.mkdir(exist_ok=True)
+
+    # Scan for images in reference_images folder
+    image_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp']
+    available_images = []
+
+    for ext in image_extensions:
+        available_images.extend(ref_folder.glob(f"*{ext}"))
+        available_images.extend(ref_folder.glob(f"*{ext.upper()}"))
+
+    # Also check root directory for backward compatibility
+    root_images = []
+    for ext in image_extensions:
+        root_images.extend(Path(".").glob(f"*{ext}"))
+        root_images.extend(Path(".").glob(f"*{ext.upper()}"))
+
+    # Filter out resized images from root
+    root_images = [img for img in root_images if "resized" not in str(img)]
+
+    if not available_images and not root_images:
+        cprint(f"No images found in '{ref_folder}' folder or root directory", color='yellow')
+        print("\nPlease add images to the 'reference_images' folder")
+        print("Supported formats: .jpg, .jpeg, .png, .webp, .bmp")
         return
 
-    # Note: Reference image feature may not be fully available yet
-    cprint("Note: Reference image upload is in beta and may not work with all accounts", color='yellow')
-    print("The API will attempt to use the image, but may proceed without it if not supported")
-    print("\nIMPORTANT: Reference image dimensions MUST match video size")
-    print("The client will automatically resize if needed and create a new file")
+    # Display available images
+    all_images = available_images + root_images
+    cprint("\nAvailable Reference Images:", color='cyan')
+    for i, img in enumerate(all_images, 1):
+        location = "reference_images" if img in available_images else "root"
+        print(f"  {i}. {img.name} ({location})")
 
-    prompt = "The character slowly turns around and smiles, and then jumps off a cliff"
+    # Select image
+    img_choice = input(f"\nSelect image (1-{len(all_images)}): ").strip()
+    try:
+        selected_image = all_images[int(img_choice) - 1]
+    except:
+        selected_image = all_images[0]
 
+    print(f"\nSelected: {selected_image}")
+
+    # Display pricing information
+    cprint("\nPricing Information:", color='cyan', format='bold')
+    print("-" * 50)
+    print("sora-2:")
+    print("  720x1280 / 1280x720: $0.10 per second")
+    print("\nsora-2-pro:")
+    print("  720x1280 / 1280x720: $0.30 per second")
+    print("  1024x1792 / 1792x1024: $0.50 per second")
+    print("-" * 50)
+
+    # Model selection
+    cprint("\nModel Selection:", color='cyan')
+    print("1. sora-2 (Standard - $0.10/sec)")
+    print("2. sora-2-pro (Professional - $0.30-$0.50/sec)")
+
+    model_choice = input("\nSelect model (1-2): ").strip()
+    if model_choice == "2":
+        model = VideoModel.SORA_2_PRO.value
+        model_name = "sora-2-pro"
+    else:
+        model = VideoModel.SORA_2.value
+        model_name = "sora-2"
+
+    # Resolution selection based on model
+    cprint("\nResolution Selection:", color='cyan')
+    if model == VideoModel.SORA_2_PRO.value:
+        print("1. Portrait 720x1280 ($0.30/sec)")
+        print("2. Landscape 1280x720 ($0.30/sec)")
+        print("3. Portrait HD 1024x1792 ($0.50/sec)")
+        print("4. Landscape HD 1792x1024 ($0.50/sec)")
+        res_choice = input("\nSelect resolution (1-4): ").strip()
+
+        resolution_map = {
+            "1": VideoSize.SIZE_720x1280.value,
+            "2": VideoSize.SIZE_1280x720.value,
+            "3": VideoSize.SIZE_1024x1792.value,
+            "4": VideoSize.SIZE_1792x1024.value
+        }
+        selected_size = resolution_map.get(res_choice, VideoSize.SIZE_720x1280.value)
+    else:
+        print("1. Portrait 720x1280 ($0.10/sec)")
+        print("2. Landscape 1280x720 ($0.10/sec)")
+        res_choice = input("\nSelect resolution (1-2): ").strip()
+
+        resolution_map = {
+            "1": VideoSize.SIZE_720x1280.value,
+            "2": VideoSize.SIZE_1280x720.value
+        }
+        selected_size = resolution_map.get(res_choice, VideoSize.SIZE_720x1280.value)
+
+    # Duration selection
+    cprint("\nDuration Selection:", color='cyan')
+    print("1. 4 seconds")
+    print("2. 8 seconds")
+    print("3. 12 seconds")
+
+    duration_choice = input("\nSelect duration (1-3): ").strip()
+    duration_map = {"1": "4", "2": "8", "3": "12"}
+    selected_duration = duration_map.get(duration_choice, "4")
+
+    # Calculate cost
+    base_rate = 0.10 if model == VideoModel.SORA_2.value else 0.30
+    if selected_size in [VideoSize.SIZE_1024x1792.value, VideoSize.SIZE_1792x1024.value]:
+        base_rate = 0.50
+    total_cost = base_rate * int(selected_duration)
+
+    cprint(f"\nEstimated Cost: ${total_cost:.2f}", color='yellow', format='bold')
+
+    # Check and prepare the reference image
+    print("\nPreparing reference image...")
+    # Validate and resize if needed
+    prepared_image, was_resized = client.validate_and_prepare_reference_image(
+        str(selected_image), selected_size
+    )
+
+    # If image was resized, save it to reference_images folder
+    if was_resized:
+        resized_path = Path(prepared_image)
+        new_path = ref_folder / resized_path.name
+        shutil.move(str(resized_path), str(new_path))
+        prepared_image = str(new_path)
+        cprint(f"Resized image saved to: {new_path}", color='green')
+
+    # Prompt guidelines
+    cprint("\nReference Image Guidelines:", color='cyan')
+    print("- Avoid images with human faces (often blocked)")
+    print("- Keep prompts positive and safe")
+
+    # Get prompt
+    safe_prompts = [
+        "The camera slowly zooms in while maintaining the composition",
+        "The scene transitions from day to sunset with beautiful lighting",
+        "The camera gently pans across the scene from left to right",
+        "The elements in the scene begin to glow with soft light",
+        "Colors gradually shift from cool tones to warm tones"
+    ]
+
+    print("\nSuggested safe prompts:")
+    for i, p in enumerate(safe_prompts, 1):
+        print(f"  {i}. {p}")
+
+    prompt_choice = input("\nChoose a prompt (1-5) or enter custom: ").strip()
+    if prompt_choice in ['1', '2', '3', '4', '5']:
+        prompt = safe_prompts[int(prompt_choice) - 1]
+    else:
+        prompt = prompt_choice if prompt_choice else safe_prompts[0]
+
+    # Summary before generation
+    print("\n" + "=" * 50)
+    cprint("Generation Summary:", color='cyan', format='bold')
+    print(f"Model: {model_name}")
+    print(f"Resolution: {selected_size}")
+    print(f"Duration: {selected_duration} seconds")
+    print(f"Cost: ${total_cost:.2f}")
+    print(f"Image: {Path(prepared_image).name}")
+    print(f"Prompt: {prompt[:80]}...")
+    print("=" * 50)
+
+    confirm = input("\nProceed with generation? (y/n): ").lower()
+    if confirm != 'y':
+        cprint("Generation cancelled", color='yellow')
+        return
+
+    print(f"\nGenerating video...")
     video = client.create_and_poll(
         prompt=prompt,
-        model=VideoModel.SORA_2_PRO.value,
-        size=VideoSize.SIZE_720x1280.value,
-        seconds="8",
-        input_reference=reference_path
+        model=model,
+        size=selected_size,
+        seconds=selected_duration,
+        input_reference=prepared_image
     )
 
     if video.status == "completed":
-        client.download_video(video.id, "character_animation.mp4")
-        cprint("Saved: character_animation.mp4", color='green')
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        clean_prompt = "".join(c for c in prompt[:30] if c.isalnum() or c.isspace())
+        clean_prompt = clean_prompt.strip().replace(" ", "_").lower()
+        filename = f"ref_{timestamp}_{clean_prompt}_{video.id[:8]}.mp4"
+
+        output_path = output_folder / filename
+        client.download_video(video.id, str(output_path))
+
+        cprint(f"\nSuccess! Video saved to: {output_path}", color='green', format='bold')
+        print(f"Total cost: ${total_cost:.2f}")
     else:
         cprint(f"Video generation status: {video.status}", color='red')
+
+        # Check for moderation block
+        error = getattr(video, 'error', None)
+        if error and 'moderation' in str(error).lower():
+            cprint("\nModeration Tips:", color='yellow')
+            print("- Try using an image without human faces")
+            print("- Use landscape or object photos instead")
+            print("- Keep prompts describing simple camera movements")
 
 
 def example_remix_workflow():
@@ -114,6 +371,11 @@ def example_remix_workflow():
     print("-" * 50)
 
     client = SoraClient()
+    from datetime import datetime
+
+    # Create generated_videos folder
+    output_folder = Path("generated_videos")
+    output_folder.mkdir(exist_ok=True)
 
     # create original first
     original_prompt = "A peaceful forest scene with morning mist"
@@ -128,7 +390,10 @@ def example_remix_workflow():
         return
 
     print(f"Original created: {original_video.id}")
-    client.download_video(original_video.id, "forest_original.mp4")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    original_path = output_folder / f"remix_{timestamp}_original_{original_video.id[:8]}.mp4"
+    client.download_video(original_video.id, str(original_path))
+    cprint(f"Original saved: {original_path}", color='green')
 
     # try some remixes
     remixes = [
@@ -149,8 +414,9 @@ def example_remix_workflow():
         completed = client.poll_video_status(remix_video.id)
 
         if completed.status == "completed":
-            client.download_video(completed.id, f"forest_remix_{i+1}.mp4")
-            print(f"Saved remix {i+1}")
+            remix_path = output_folder / f"remix_{timestamp}_v{i+1}_{completed.id[:8]}.mp4"
+            client.download_video(completed.id, str(remix_path))
+            cprint(f"Saved: {remix_path}", color='green')
 
 
 def example_download_all_assets():
@@ -159,16 +425,24 @@ def example_download_all_assets():
     print("-" * 50)
 
     client = SoraClient()
+    from datetime import datetime
+
+    # Create generated_videos folder
+    output_folder = Path("generated_videos")
+    output_folder.mkdir(exist_ok=True)
 
     prompt = "Time-lapse of clouds moving across a city skyline"
     video = client.create_and_poll(prompt, seconds="4")
 
     if video.status == "completed":
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = f"assets_{timestamp}_{video.id[:8]}"
+
         # grab everything
-        client.download_video(video.id, "timelapse.mp4", variant="video")
-        client.download_video(video.id, "timelapse_thumb.webp", variant="thumbnail")
-        client.download_video(video.id, "timelapse_sprites.jpg", variant="spritesheet")
-        cprint("Downloaded all assets", color='green')
+        client.download_video(video.id, str(output_folder / f"{base_name}.mp4"), variant="video")
+        client.download_video(video.id, str(output_folder / f"{base_name}_thumb.webp"), variant="thumbnail")
+        client.download_video(video.id, str(output_folder / f"{base_name}_sprites.jpg"), variant="spritesheet")
+        cprint(f"Downloaded all assets to: {output_folder}", color='green')
 
 
 def example_batch_generation():
@@ -177,6 +451,11 @@ def example_batch_generation():
     print("-" * 50)
 
     client = SoraClient()
+    from datetime import datetime
+
+    # Create generated_videos folder
+    output_folder = Path("generated_videos")
+    output_folder.mkdir(exist_ok=True)
 
     prompts = [
         "A butterfly emerging from its cocoon in macro detail",
@@ -195,6 +474,7 @@ def example_batch_generation():
     # poll for completion
     print("\nWaiting for videos to complete...")
     completed_videos = []
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     for job in video_jobs:
         video = client.poll_video_status(job["id"], show_progress=False)
@@ -206,9 +486,13 @@ def example_batch_generation():
 
     # download completed ones
     for i, video in enumerate(completed_videos):
-        client.download_video(video.id, f"batch_video_{i+1}.mp4")
+        filename = f"batch_{timestamp}_{i+1}_{video.id[:8]}.mp4"
+        output_path = output_folder / filename
+        client.download_video(video.id, str(output_path))
 
     print(f"\nBatch complete: {len(completed_videos)}/{len(prompts)} succeeded")
+    if completed_videos:
+        cprint(f"Videos saved to: {output_folder}", color='green')
 
 
 async def example_async_generation():
@@ -217,6 +501,11 @@ async def example_async_generation():
     print("-" * 50)
 
     client = SoraClient()
+    from datetime import datetime
+
+    # Create generated_videos folder
+    output_folder = Path("generated_videos")
+    output_folder.mkdir(exist_ok=True)
 
     prompts = [
         "Lightning striking a lone tree in a field",
@@ -232,12 +521,15 @@ async def example_async_generation():
 
     # run them all
     results = await asyncio.gather(*tasks)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # download what completed
     for i, video in enumerate(results):
         if video.status == "completed":
-            client.download_video(video.id, f"async_video_{i+1}.mp4")
-            print(f"Downloaded async_video_{i+1}.mp4")
+            filename = f"async_{timestamp}_{i+1}_{video.id[:8]}.mp4"
+            output_path = output_folder / filename
+            client.download_video(video.id, str(output_path))
+            cprint(f"Downloaded: {output_path}", color='green')
 
 
 def example_video_library_management():
@@ -529,7 +821,8 @@ def run_example(choice: str):
         "8": example_video_library_management,
         "9": example_advanced_prompting,
         "t": test_connection,
-        "g": lambda: interactive_video_generator()  # new generator menu
+        "g": lambda: interactive_video_generator(),  # new generator menu
+        "s": example_test_reference_safe  # safe reference test
     }
 
     if choice == "0":
@@ -577,6 +870,7 @@ def main():
         print("\nAvailable Options:")
         cprint("\nNEW - Interactive Generator:", color='green', format='bold')
         print("  G. Custom Video Generator - Full control over all settings")
+        print("  S. Safe Reference Test - Test with face-free images")
         print("\nVideo Generation:")
         print("  1. Interactive Generation - User customizable")
         print("  2. High Quality Production - Pro model, 12-second")
@@ -595,7 +889,7 @@ def main():
 
         while True:
             try:
-                choice = input("\nSelect option (0-9, G, T, or Q to quit): ").strip().lower()
+                choice = input("\nSelect option (0-9, G, S, T, or Q to quit): ").strip().lower()
 
                 if choice == 'q' or choice == 'quit':
                     print("Bye")

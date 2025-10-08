@@ -26,7 +26,6 @@ venv/
 *.webp
 *.jpg
 downloads/
-generated_videos/
 
 # Cache
 .sora_cache/

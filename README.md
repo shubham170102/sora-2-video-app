@@ -140,13 +140,26 @@ The API enforces strict content policies. Videos will fail if they contain:
 - **Real people or celebrities**
 - **Trademarked logos or brands**
 - **Inappropriate or adult content**
-- **Faces in input reference images**
+- **Faces in input reference images** (Very strict - often causes moderation blocks)
+
+**Reference Image Moderation Issues:**
+Reference images with human faces are frequently blocked. To successfully use reference images:
+1. Use landscape, nature, or abstract images
+2. Avoid any identifiable people or faces
+3. Use the included test image generator: `python create_test_image.py`
+4. Test with option 'S' in the menu for safe reference testing
 
 **Working Around Restrictions:**
 Instead of using copyrighted names, use generic descriptions:
 - Instead of "Spider-Man swinging" use "A masked hero in red and blue suit swinging between buildings"
 - Instead of "Batman on rooftop" use "A dark vigilante figure on gothic architecture at night"
 - Focus on describing visual elements rather than naming specific IP
+
+**Safe Prompts for Reference Images:**
+- "The camera slowly zooms in by 10 percent"
+- "Gentle fade transition to warmer color temperature"
+- "Smooth pan from left to right across the scene"
+- Avoid actions involving people or dangerous situations
 
 ## Usage Examples
 
